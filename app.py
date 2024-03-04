@@ -1,6 +1,8 @@
-from flask import Flask
+from flask import Flask, request, jsonify
+from flask_restful import Resource, Api
 
 app = Flask(__name__)
+api = Api(app)
 
 
 class UserService:
@@ -47,3 +49,51 @@ class UserService:
 
 
 user_service = UserService()
+
+
+class UsersResource(Resource):
+    def get(self):
+        users = user_service.get_all_users()
+        return users
+
+    def post(self):
+        data = request.get_json()
+        if all(key in data for key in ['firstName', 'lastName', 'birthYear', 'group']):
+            user = user_service.create_user(data)
+            return user, 200
+        else:
+            return jsonify({"error": "Invalid input data"}), 400
+
+
+class UserResource(Resource):
+    def get(self, user_id):
+        user = user_service.get_user_by_id(user_id)
+        if user:
+            return user, 200
+        else:
+            return jsonify({"error": "User not found"}), 404
+
+    def patch(self, user_id):
+        data = request.get_json()
+        user = user_service.update_user(user_id, data)
+        if user:
+            return user, 200
+        else:
+            return 404
+
+    def delete(self, user_id):
+        user = user_service.delete_user(user_id)
+        if user:
+            return user, 200
+        else:
+            return jsonify({"error": "User not found"}), 404
+
+
+api.add_resource(UsersResource, '/users')
+api.add_resource(UserResource, '/users/<int:user_id>')
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+
+
